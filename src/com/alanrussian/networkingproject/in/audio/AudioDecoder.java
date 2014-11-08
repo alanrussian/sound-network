@@ -12,9 +12,7 @@ import javax.sound.sampled.TargetDataLine;
 
 import com.alanrussian.networkingproject.common.Constants;
 import com.alanrussian.networkingproject.in.audio.frame.FrameWatcher;
-import com.alanrussian.networkingproject.in.audio.math.RunningAverage;
 import com.alanrussian.networkingproject.in.audio.math.SoundMath;
-import com.alanrussian.networkingproject.in.audio.math.Statistics;
 
 /**
  * Listens to the microphone and tries to detect data sent by other devices.
@@ -22,20 +20,9 @@ import com.alanrussian.networkingproject.in.audio.math.Statistics;
 public class AudioDecoder {
 
   /**
-   * The number of samples to collect for the {@link RunningAverage}s.
-   */
-  private static final int RUNNING_AVERAGE_SAMPLES = 8;
-  
-  /**
-   * The number of standard deviations to check whether a frequency magnitude is within of a {@link
-   * #runningLow} or of a {@link #runningHigh}.
-   */
-  private static final int RUNNING_DEVIATIONS = 2;
-
-  /**
    * The number of partitions per {@link Constants#BIT_DURATION} to evaluate.
    */
-  private static final int SOUND_PARTITIONS = 8;
+  private static final int SOUND_PARTITIONS = 16;
   
   private static final AudioFormat AUDIO_FORMAT = new AudioFormat(
         Constants.SAMPLE_RATE,
@@ -80,8 +67,6 @@ public class AudioDecoder {
   
   private final Listener listener;
   private final TargetDataLine line;
-  private final RunningAverage runningLow;
-  private final RunningAverage runningHigh;
   private final FrameWatcher frameWatcher;
   private final AudioSignalParser audioSignalParser;
   
@@ -92,9 +77,6 @@ public class AudioDecoder {
     line.open(AUDIO_FORMAT);
 
     line.start();
-    
-    this.runningLow = new RunningAverage(RUNNING_AVERAGE_SAMPLES);
-    this.runningHigh = new RunningAverage(RUNNING_AVERAGE_SAMPLES);
     
     this.frameWatcher = new FrameWatcher(frameWatcherListener);
     this.audioSignalParser = new AudioSignalParser(SOUND_PARTITIONS, audioSignalParserListener);
@@ -124,67 +106,43 @@ public class AudioDecoder {
 
     line.read(data, 0, data.length);
     
-    double[] frequencyMagnitudes =
-        getPartitionedFrequencyMagnitudes(
-            SOUND_PARTITIONS,
-            Constants.FREQUENCY,
-            data,
-            Constants.SAMPLE_RATE);
+    double[][] partitionedAndTransformedData =
+        getPartitionedAndTransformedData(SOUND_PARTITIONS, data);
     
-    for (int i = 0; i < frequencyMagnitudes.length; i++) {
-      double frequencyMagnitude = frequencyMagnitudes[i];
-
-      if (!runningLow.haveAverage()) {
-        runningLow.add(frequencyMagnitude);
-        runningHigh.add(frequencyMagnitude);
-
-        continue;
-      }
-
-      boolean value;
-      boolean withinLow = Statistics.isWithinAverage(
-          frequencyMagnitude,
-          runningLow.getAverage(),
-          runningLow.getStandardDeviation(),
-          RUNNING_DEVIATIONS);
-      boolean withinHigh = Statistics.isWithinAverage(
-          frequencyMagnitude,
-          runningHigh.getAverage(),
-          runningHigh.getStandardDeviation(),
-          RUNNING_DEVIATIONS);
-
-      if (withinLow && (frequencyMagnitude < runningHigh.getAverage())) {
-        value = false;
-      } else if (withinHigh && (frequencyMagnitude > runningLow.getAverage())) {
-        value = true;
-      } else {
-        double lowDifference = Math.abs(runningLow.getAverage() - frequencyMagnitude);
-        double highDifference = Math.abs(runningHigh.getAverage() - frequencyMagnitude);
-        
-        value = lowDifference > highDifference;
-        
-      }
+    double[] offMagnitudes = getPartitionedFrequencyMagnitudes(
+        Constants.FREQUENCY_OFF,
+        partitionedAndTransformedData,
+        Constants.SAMPLE_RATE);
+    double[] offOffsetMagnitudes = getPartitionedFrequencyMagnitudes(
+        Constants.FREQUENCY_OFF + Constants.FREQUENCY_SECOND_OFFSET,
+        partitionedAndTransformedData,
+        Constants.SAMPLE_RATE);
+    double[] onMagnitudes = getPartitionedFrequencyMagnitudes(
+        Constants.FREQUENCY_ON,
+        partitionedAndTransformedData,
+        Constants.SAMPLE_RATE);
+    double[] onOffsetMagnitudes = getPartitionedFrequencyMagnitudes(
+        Constants.FREQUENCY_ON + Constants.FREQUENCY_SECOND_OFFSET,
+        partitionedAndTransformedData,
+        Constants.SAMPLE_RATE);
+    
+    for (int i = 0; i < SOUND_PARTITIONS; i++) {
+      double offMagnitude = offMagnitudes[i] + offOffsetMagnitudes[i];
+      double onMagnitude = onMagnitudes[i] + onOffsetMagnitudes[i];
       
-      if (value) {
-        runningHigh.add(frequencyMagnitude);
-      } else {
-        runningLow.add(frequencyMagnitude);
-      }
+//      System.out.printf("%.2f %.2f%n", offMagnitude, onMagnitude);
+
+      boolean value = onMagnitude > offMagnitude;
       
       audioSignalParser.addSignal(value);
     }
   }
   
   /**
-   * Splits up a sound into chunks and returns the frequency magnitudes of each chunk.
+   * Splits up a sound into chunks and applies the FFT to the chunks.
    */
-  private double[] getPartitionedFrequencyMagnitudes(
-      int partitions,
-      double frequency,
-      byte[] soundData,
-      int sampleRate) {
-
-    double[] magnitudes = new double[partitions];
+  private double[][] getPartitionedAndTransformedData(int partitions, byte[] soundData) {
+    double[][] transformedData = new double[partitions][];
     
     int partitionSize = soundData.length / partitions;
     for (int i = 0; i < partitions; i++) {
@@ -197,7 +155,27 @@ public class AudioDecoder {
       byte[] partitionSoundData =
           Arrays.copyOfRange(soundData, start, start + partitionSizeHere);
       
-      magnitudes[i] = SoundMath.getMagnitudeOfFrequency(frequency, partitionSoundData, sampleRate);
+      transformedData[i] = SoundMath.applyFft(partitionSoundData);
+    }
+    
+    return transformedData;
+  }
+  
+  /**
+   * Returns the frequency magnitudes of chunks of FFT transformed data.
+   */
+  private double[] getPartitionedFrequencyMagnitudes(
+      double frequency,
+      double[][] partitionedAndTransformedData,
+      int sampleRate) {
+
+    double[] magnitudes = new double[partitionedAndTransformedData.length];
+    
+    for (int i = 0; i < magnitudes.length; i++) {
+      magnitudes[i] = SoundMath.getMagnitudeOfFrequency(
+          frequency,
+          partitionedAndTransformedData[i],
+          sampleRate);
     }
     
     return magnitudes;

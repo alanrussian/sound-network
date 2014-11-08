@@ -7,8 +7,7 @@ import java.util.List;
 import javax.sound.sampled.LineUnavailableException;
 
 import com.alanrussian.networkingproject.common.Constants;
-import com.alanrussian.networkingproject.out.audio.wave.EmptyWave;
-import com.alanrussian.networkingproject.out.audio.wave.SineWave;
+import com.alanrussian.networkingproject.out.audio.wave.Wave;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -17,18 +16,18 @@ import com.google.common.collect.ImmutableList;
  */
 public class AudioFrame {
   
-  private final SineWave sineWave;
-  private final EmptyWave emptyWave;
+  private final Wave waveOff;
+  private final Wave waveOn;
   private final byte[] data;
 
-  public AudioFrame(SineWave sineWave, byte[] data) {
+  public AudioFrame(Wave waveOff, Wave waveOn, byte[] data) {
     if (data.length > Constants.AUDIO_FRAME_MAX_DATA_LENGTH) {
       throw new IllegalArgumentException(
           "Data must be less than " + Constants.AUDIO_FRAME_MAX_DATA_LENGTH + " bytes.");
     }
 
-    this.sineWave = sineWave;
-    this.emptyWave = EmptyWave.getInstance();
+    this.waveOff = waveOff;
+    this.waveOn = waveOn;
     this.data = data;
   }
   
@@ -96,12 +95,12 @@ public class AudioFrame {
         continue;
       }
       
-      player.add(lastValue ? sineWave : emptyWave, Constants.BIT_DURATION * length);
+      player.add(lastValue ? waveOn : waveOff, Constants.BIT_DURATION * length);
       length = 1;
       lastValue = value;
     }
     
-    player.add(lastValue ? sineWave : emptyWave, Constants.BIT_DURATION * length);
+    player.add(lastValue ? waveOn : waveOff, Constants.BIT_DURATION * length);
   }
   
   private static List<Boolean> byteArrayToBooleanList(byte[] array) {

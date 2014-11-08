@@ -17,19 +17,33 @@ public class Constants {
   public static final Charset CHARSET = StandardCharsets.UTF_8;
   
   /**
-   * Frequency at which to transfer sound.
+   * Sound frequency at which to transfer off bits. Be sure to avoid harmonics with {@link
+   * #FREQUENCY_ON}. Also, it should be a multiple of 50.
    */
-  public static final double FREQUENCY = 300.0;
+  public static final double FREQUENCY_OFF = 1_000.0;
+  
+  /**
+   * Sound frequency at which to transfer on bits. Be sure to avoid harmonics with {@link
+   * #FREQUENCY_OFF}. Also, it should be a multiple of 50.
+   */
+  public static final double FREQUENCY_ON = FREQUENCY_OFF + 400.0;
+  
+  /**
+   * Offset of off and on frequency to mix into off and on wave. For example, if you put 50 here and
+   * 10,000 in FREQUENCY_OFF, there will be two sine waves mixed together at 10,000 and 10,050 hz.
+   * Make sure this is a multiple of 50 and avoid harmonics.
+   */
+  public static final double FREQUENCY_SECOND_OFFSET = 100.0;
   
   /**
    * The sample rate to encode and to decode at.
    */
-  public static final int SAMPLE_RATE = 44_100;
+  public static final int SAMPLE_RATE = 48_000;
   
   /**
    * Millaseconds that each bit is transfered for.
    */
-  public static final int BIT_DURATION = 256;
+  public static final int BIT_DURATION = SAMPLE_RATE / 250;
   
   /**
    * The start of an audio frame.

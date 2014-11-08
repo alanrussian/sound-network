@@ -23,22 +23,22 @@ public class MixedWave implements Wave {
   public byte[] getData(int sampleRate, int duration) {
     byte[] data = new byte[sampleRate / 1000 * duration];
 
-    FluentIterable<byte[]> waveBytes = FluentIterable.from(waves)
+    List<byte[]> waveBytes = FluentIterable.from(waves)
         .transform(new Function<Wave, byte[]>() {
           @Override
           public byte[] apply(Wave wave) {
             return wave.getData(sampleRate, duration);
           }
-        });
+        }).toList();
     
     for (int i = 0; i < data.length; i++) {
-      double sum = 0;
+      int sum = 0;
 
       for (byte[] bytes : waveBytes) {
-        sum += bytes[i];
+        sum += (int) bytes[i];
       }
 
-      data[i] = (byte) (sum / waves.size());
+      data[i] = (byte) ((double) sum / waves.size());
     }
     
     return data;

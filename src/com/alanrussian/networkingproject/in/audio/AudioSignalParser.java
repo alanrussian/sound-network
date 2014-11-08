@@ -25,7 +25,7 @@ class AudioSignalParser {
   /**
    * Threshold of signals being the same in order to consider a bit present.
    */
-  private static final double SIGNAL_THRESHOLD = 7.0/8.0;
+  private static final double SIGNAL_THRESHOLD = 0.75;
 
   /**
    * The number of signals that will be sent per bit.
@@ -54,10 +54,12 @@ class AudioSignalParser {
   }
   
   /**
-   * Parses the signals we have and tries to find bits.
+   * Parses the signals we have and tries to find bits. This works by looking at one and a half
+   * signals times more than are in an actual bit to handle if there were a few less or more signals
+   * than expected.
    */
   private void parseSignals() {
-    if (signals.size() != signalsPerActualBit) {
+    if (signals.size() != 1.5 * signalsPerActualBit) {
       return;
     }
     
@@ -75,14 +77,15 @@ class AudioSignalParser {
       listener.onBitReceived(value);
       
       // Find where the signal changed.
-      int i;
-      for (i = signals.size() - 2; i < signals.size(); i++) {
-        if (signals.get(i) != value) {
+      int i = signals.size() - 1;
+      for (; i >= signals.size() - 1 - ((double) signalsPerActualBit); i--) {
+        if (smoothSignals.get(i) == value) {
+          i = Math.min(i, signalsPerActualBit - 1);
           break;
         }
       }
       
-      for (int j = 0; j < i; j++) {
+      for (int j = 0; j < i + 1; j++) {
         signals.removeFirst();
       }
     } else {
