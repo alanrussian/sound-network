@@ -20,6 +20,18 @@ import com.alanrussian.networkingproject.in.audio.math.SoundMath;
 public class AudioDecoder {
 
   /**
+   * Listener for changes to {@link Input}.
+   *
+   */
+  public static interface Listener {
+
+    /**
+     * Triggered when new data is received.
+     */
+    void onDataReceived(byte[] data);
+  }
+
+  /**
    * The number of partitions per {@link Constants#BIT_DURATION} to evaluate.
    */
   private static final int SOUND_PARTITIONS = 16;
@@ -52,18 +64,6 @@ public class AudioDecoder {
       processSound();
     }
   };
-
-  /**
-   * Listener for changes to {@link Input}.
-   *
-   */
-  public interface Listener {
-
-    /**
-     * Triggered when new data is received.
-     */
-    void onDataReceived(byte[] data);
-  }
   
   private final Listener listener;
   private final TargetDataLine line;
