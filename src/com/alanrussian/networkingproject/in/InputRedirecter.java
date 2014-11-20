@@ -16,6 +16,11 @@ public class InputRedirecter {
     public void onDataReceived(byte[] data) {
       handleDataReceived(data);
     }
+
+    @Override
+    public void onAckReceived() {
+      // Do not care here.
+    }
   };
 
   public InputRedirecter(Input in, PrintStream out) {

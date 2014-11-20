@@ -22,6 +22,11 @@ public class Input {
      * Triggered when new data is received.
      */
     void onDataReceived(byte[] data);
+    
+    /**
+     * Triggered when an ACK is received.
+     */
+    void onAckReceived();
   }
   
   private final List<Listener> listeners;
@@ -30,6 +35,11 @@ public class Input {
     @Override
     public void onDataReceived(byte[] data) {
       handleDataReceived(data);
+    }
+    
+    @Override
+    public void onAckReceived() {
+      handleAckReceived();
     }
   };
   
@@ -54,6 +64,15 @@ public class Input {
   private void handleDataReceived(byte[] data) {
     for (Listener listener : listeners) {
       listener.onDataReceived(data);
+    }
+  }
+  
+  /**
+   * Handles an ACK being received from the {@link AudioDecoder}.
+   */
+  private void handleAckReceived() {
+    for (Listener listener : listeners) {
+      listener.onAckReceived();
     }
   }
 }

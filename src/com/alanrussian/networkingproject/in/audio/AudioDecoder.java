@@ -29,6 +29,11 @@ public class AudioDecoder {
      * Triggered when new data is received.
      */
     void onDataReceived(byte[] data);
+    
+    /**
+     * Triggered when an ACK is received.
+     */
+    void onAckReceived();
   }
 
   /**
@@ -45,8 +50,13 @@ public class AudioDecoder {
   
   private final FrameWatcher.Listener frameWatcherListener = new FrameWatcher.Listener() {
     @Override
-    public void onFrameFound(byte[] data) {
+    public void onDataFrameFound(byte[] data) {
       handleFrameFound(data);
+    }
+    
+    @Override
+    public void onAckFrameFound() {
+      handleAckFound();
     }
   };
   
@@ -182,10 +192,17 @@ public class AudioDecoder {
   }
   
   /**
-   * Handles a frame with data found from the {@link FrameWatcher}.
+   * Handles a frame with data found by the {@link FrameWatcher}.
    */
   private void handleFrameFound(byte[] data) {
     listener.onDataReceived(data);
+  }
+  
+  /**
+   * Handles an ACK frame being found by the {@link FrameWatcher}.
+   */
+  private void handleAckFound() {
+    listener.onAckReceived();
   }
   
   /**

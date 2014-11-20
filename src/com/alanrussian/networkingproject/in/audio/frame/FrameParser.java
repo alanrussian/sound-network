@@ -52,7 +52,14 @@ class FrameParser {
       return false;
     }
     
-    if (dataParser.size() != size.get() * 8) {
+    // Handle ACK case.
+    if (size.get() == 0) {
+      handleNewFrameEndBit(value);
+
+      return isFrameFinished();
+    }
+    
+    if (dataParser.size() != size.get() * 8 /* bits in byte */) {
       try {
         handleNewDataBit(value);
       } catch (ManchesterEncodingException e) {
@@ -68,7 +75,7 @@ class FrameParser {
     
     handleNewFrameEndBit(value);
 
-    return endIndex == Constants.AUDIO_FRAME_END.size();
+    return isFrameFinished();
   }
   
   /**
@@ -77,11 +84,24 @@ class FrameParser {
    * @throws IllegalStateException if the frame has not yet ended
    */
   public List<Boolean> getData() {
-    if (endIndex != Constants.AUDIO_FRAME_END.size()) {
+    if (!isFrameFinished()) {
       throw new IllegalStateException();
     }
     
     return dataParser.getData();
+  }
+  
+  /**
+   * Returns whether this is an ACK frame.
+   * 
+   * @throws IllegalStateException if the frame has not yet ended
+   */
+  public boolean isAckFrame() {
+    if (!isFrameFinished()) {
+      throw new IllegalStateException();
+    }
+    
+    return size.get() == 0;
   }
   
   /**
@@ -139,5 +159,12 @@ class FrameParser {
     }
 
     return number;
+  }
+  
+  /**
+   * Returns whether a frame has ended.
+   */
+  private boolean isFrameFinished() {
+    return endIndex == Constants.AUDIO_FRAME_END.size();
   }
 }
