@@ -7,13 +7,30 @@ import com.alanrussian.networkingproject.out.audio.AudioEncoder;
  */
 public class Output {
   
+  private static Output instance;
+  
   private final AudioEncoder encoder;
   
-  public Output() {
+  private Output() {
     encoder = new AudioEncoder();
   }
+  
+  /**
+   * Returns the instance of the Output class.
+   */
+  public static Output getInstance() {
+    if (instance == null) {
+      instance = new Output();
+    }
 
-  public void send(byte[] data) {
-    encoder.send(data);
+    return instance;
+  }
+
+  public void sendData(byte[] data) {
+    encoder.sendData(data);
+  }
+  
+  public void sendAck() {
+    encoder.sendAck();
   }
 }

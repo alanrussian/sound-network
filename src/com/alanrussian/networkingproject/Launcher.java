@@ -12,7 +12,7 @@ public class Launcher {
   
   public Launcher() {
     Input in = Input.getInstance();
-    Output out = new Output();
+    Output out = Output.getInstance();
 
     new InputRedirecter(in, System.out);
     new OutputRedirector(out, System.in);

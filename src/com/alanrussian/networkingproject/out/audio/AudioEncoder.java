@@ -2,7 +2,6 @@ package com.alanrussian.networkingproject.out.audio;
 
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -11,10 +10,12 @@ import java.util.concurrent.TimeUnit;
 
 import com.alanrussian.networkingproject.common.Constants;
 import com.alanrussian.networkingproject.in.Input;
+import com.alanrussian.networkingproject.out.audio.frame.AckFrame;
+import com.alanrussian.networkingproject.out.audio.frame.DataFrame;
+import com.alanrussian.networkingproject.out.audio.frame.Frame;
 import com.alanrussian.networkingproject.out.audio.wave.MixedWave;
 import com.alanrussian.networkingproject.out.audio.wave.SineWave;
 import com.alanrussian.networkingproject.out.audio.wave.Wave;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -31,15 +32,16 @@ public class AudioEncoder {
           + Constants.AUDIO_FRAME_END.size());
   
   /**
-   * Time buffer for the ACK timeout (in millaseconds).
+   * Time buffer for the ACK timeout (in millaseconds). Note the high number is due to the slow
+   * decoding process.
    */
-  private static final long ACK_TIME_BUFFER = 50;
+  private static final long ACK_TIME_BUFFER = Constants.BIT_DURATION * 4;
   
   private final Wave waveOff;
   private final Wave waveOn;
   
   private final Input input;
-  private final Queue<AudioFrame> frameQueue;
+  private final LinkedList<Frame> frameQueue;
   private final ScheduledExecutorService executor;
   
   private final Input.Listener inputListener = new Input.Listener() {
@@ -51,7 +53,15 @@ public class AudioEncoder {
     @Override
     public void onAckReceived() {
       handleAckReceived();
-    }};
+    }
+  };
+    
+  private final Runnable onFrameSentRunnable = new Runnable() {
+    @Override
+    public void run() {
+      handleFrameSent();
+    }
+  };
     
   private final Callable<Void> timeoutRunnable = new Callable<Void>() {
     @Override
@@ -61,6 +71,7 @@ public class AudioEncoder {
       return null;
     }};
     
+  private boolean isFrameSending;
   private ScheduledFuture<Void> timeoutFuture;
   
   public AudioEncoder() {
@@ -81,14 +92,14 @@ public class AudioEncoder {
   /**
    * Sends {@code data} over audio.
    */
-  public void send(byte[] data) {
+  public void sendData(byte[] data) {
     try {
       int offset = 0;
       
       while (offset < data.length) {
         int length = Math.min(Constants.AUDIO_FRAME_MAX_DATA_LENGTH, data.length - offset + 1);
         
-        AudioFrame frame = new AudioFrame(
+        DataFrame frame = new DataFrame(
             waveOff,
             waveOn,
             Arrays.copyOfRange(data, offset, offset + length));
@@ -106,18 +117,50 @@ public class AudioEncoder {
   }
   
   /**
+   * Sends an ACK over audio.
+   */
+  public void sendAck() {
+    AckFrame frame = new AckFrame(waveOff, waveOn);
+    
+    // Must maintain the currently sending frame as the first item in the queue.
+    frameQueue.add(isFrameSending ? 1 : 0, frame);
+    
+    sendNextFrame();
+  }
+  
+  /**
    * Sends the next frame in the queue.
    */
   private void sendNextFrame() {
-    Preconditions.checkArgument(!frameQueue.isEmpty());
+    if (isFrameSending || frameQueue.isEmpty()) {
+      return;
+    }
 
-    AudioFrame nextFrame = frameQueue.peek();
-    nextFrame.send();
-    
-    timeoutFuture = executor.schedule(
-        timeoutRunnable,
-        ACK_FRAME_DURATION + ACK_TIME_BUFFER,
-        TimeUnit.MILLISECONDS);
+    isFrameSending = true;
+    input.setEnabled(false);
+
+    Frame nextFrame = frameQueue.getFirst();
+    nextFrame.send(onFrameSentRunnable);
+  }
+  
+  /**
+   * Handles a frame finishing being sent. This re-enables input and sends the next frame if it is
+   * an {@link AckFrame} or awaits for the ACK if it is another frame (e.g., {@link DataFrame}).
+   */
+  private void handleFrameSent() {
+    isFrameSending = false;
+    input.setEnabled(true);
+
+    Frame lastFrame = frameQueue.getFirst();
+    if (lastFrame instanceof AckFrame) {
+      frameQueue.removeFirst();
+      sendNextFrame();
+    } else {
+      timeoutFuture = executor.schedule(
+          timeoutRunnable,
+          ACK_FRAME_DURATION + ACK_TIME_BUFFER,
+          TimeUnit.MILLISECONDS);
+    }
   }
   
   /**
@@ -130,10 +173,8 @@ public class AudioEncoder {
     
     timeoutFuture.cancel(false);
     
-    frameQueue.remove();
-    if (!frameQueue.isEmpty()) {
-      sendNextFrame();
-    }
+    frameQueue.removeFirst();
+    sendNextFrame();
   }
   
   /**

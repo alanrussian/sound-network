@@ -24,7 +24,7 @@ public class OutputRedirector {
     @Override
     public void run() {
       while (scanner.hasNextLine()) {
-        out.send(scanner.nextLine().getBytes(Constants.CHARSET));
+        out.sendData(scanner.nextLine().getBytes(Constants.CHARSET));
       }
     }
   };

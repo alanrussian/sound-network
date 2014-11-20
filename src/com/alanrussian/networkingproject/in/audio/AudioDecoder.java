@@ -13,9 +13,11 @@ import javax.sound.sampled.TargetDataLine;
 import com.alanrussian.networkingproject.common.Constants;
 import com.alanrussian.networkingproject.in.audio.frame.FrameWatcher;
 import com.alanrussian.networkingproject.in.audio.math.SoundMath;
+import com.alanrussian.networkingproject.out.Output;
 
 /**
- * Listens to the microphone and tries to detect data sent by other devices.
+ * Listens to the microphone and tries to detect data sent by other devices. Sends an ACK when
+ * frames are received.
  */
 public class AudioDecoder {
 
@@ -48,6 +50,11 @@ public class AudioDecoder {
         true, /* signed */ 
         true /* bigEndian */);
   
+  private final Listener listener;
+  private final TargetDataLine line;
+  private final FrameWatcher frameWatcher;
+  private final AudioSignalParser audioSignalParser;
+  
   private final FrameWatcher.Listener frameWatcherListener = new FrameWatcher.Listener() {
     @Override
     public void onDataFrameFound(byte[] data) {
@@ -75,10 +82,7 @@ public class AudioDecoder {
     }
   };
   
-  private final Listener listener;
-  private final TargetDataLine line;
-  private final FrameWatcher frameWatcher;
-  private final AudioSignalParser audioSignalParser;
+  private boolean isEnabled;
   
   public AudioDecoder(Listener listener) throws LineUnavailableException {
     this.listener = listener;
@@ -91,7 +95,16 @@ public class AudioDecoder {
     this.frameWatcher = new FrameWatcher(frameWatcherListener);
     this.audioSignalParser = new AudioSignalParser(SOUND_PARTITIONS, audioSignalParserListener);
     
+    isEnabled = true;
+    
     scheduleTasks();
+  }
+  
+  /**
+   * Sets whether sounds are processed.
+   */
+  public void setEnabled(boolean isEnabled) {
+    this.isEnabled = isEnabled;
   }
   
   private void scheduleTasks() {
@@ -107,6 +120,10 @@ public class AudioDecoder {
    * Processes the next bit of sound.
    */
   private void processSound() {
+    if (!isEnabled) {
+      return;
+    }
+
     Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 
     byte[] data = new byte[line.available()];
@@ -195,6 +212,7 @@ public class AudioDecoder {
    * Handles a frame with data found by the {@link FrameWatcher}.
    */
   private void handleFrameFound(byte[] data) {
+    Output.getInstance().sendAck();
     listener.onDataReceived(data);
   }
   

@@ -31,6 +31,7 @@ public class Input {
   
   private static Input instance;
   
+  private final AudioDecoder audioDecoder;
   private final List<Listener> listeners;
   
   private final AudioDecoder.Listener decoderListener = new AudioDecoder.Listener() {
@@ -49,10 +50,12 @@ public class Input {
     this.listeners = new ArrayList<>();
 
     try {
-      new AudioDecoder(decoderListener);
+      this.audioDecoder = new AudioDecoder(decoderListener);
     } catch (LineUnavailableException e) {
       // TODO: Handle error.
       e.printStackTrace();
+      
+      throw new RuntimeException("Could not initialize audio decoder.");
     }
   }
   
@@ -69,6 +72,14 @@ public class Input {
   
   public void addListener(Listener listener) {
     listeners.add(listener);
+  }
+  
+  /**
+   * Sets whether input should be enabled. Input should be disabled, for example, if you are sending
+   * something.
+   */
+  public void setEnabled(boolean isEnabled) {
+    audioDecoder.setEnabled(isEnabled);
   }
   
   /**
