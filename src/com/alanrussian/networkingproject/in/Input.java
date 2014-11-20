@@ -8,7 +8,7 @@ import javax.sound.sampled.LineUnavailableException;
 import com.alanrussian.networkingproject.in.audio.AudioDecoder;
 
 /**
- * Reads data broadcasted from an {@link Output}.
+ * Singleton that reads data broadcasted from an {@link Output}.
  */
 public class Input {
   
@@ -29,6 +29,8 @@ public class Input {
     void onAckReceived();
   }
   
+  private static Input instance;
+  
   private final List<Listener> listeners;
   
   private final AudioDecoder.Listener decoderListener = new AudioDecoder.Listener() {
@@ -43,7 +45,7 @@ public class Input {
     }
   };
   
-  public Input() {
+  private Input() {
     this.listeners = new ArrayList<>();
 
     try {
@@ -52,6 +54,17 @@ public class Input {
       // TODO: Handle error.
       e.printStackTrace();
     }
+  }
+  
+  /**
+   * Returns the instance of the Input class.
+   */
+  public static Input getInstance() {
+    if (instance == null) {
+      instance = new Input();
+    }
+
+    return instance;
   }
   
   public void addListener(Listener listener) {

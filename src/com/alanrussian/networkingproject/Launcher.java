@@ -11,7 +11,7 @@ import com.alanrussian.networkingproject.out.OutputRedirector;
 public class Launcher {
   
   public Launcher() {
-    Input in = new Input();
+    Input in = Input.getInstance();
     Output out = new Output();
 
     new InputRedirecter(in, System.out);
