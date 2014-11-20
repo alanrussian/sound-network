@@ -107,6 +107,14 @@ public class AudioDecoder {
     this.isEnabled = isEnabled;
   }
   
+  /**
+   * Returns whether all listened to frequencies are clear.
+   */
+  public boolean isLineClear() {
+    // TODO: Implement.
+    return true;
+  }
+  
   private void scheduleTasks() {
     ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     executor.scheduleAtFixedRate(

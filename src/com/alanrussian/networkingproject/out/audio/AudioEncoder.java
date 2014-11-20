@@ -24,6 +24,18 @@ import com.google.common.collect.ImmutableList;
 public class AudioEncoder {
   
   /**
+   * The time it takes to send the largest possible frame (in millaseconds).
+   */
+  private static final long MAX_FRAME_DURATION =
+      Constants.BIT_DURATION * (Constants.AUDIO_FRAME_START.size()
+          + (Constants.AUDIO_FRAME_SIZE_BITS * 2 /* Manchester encoded */)
+          + (Constants.AUDIO_FRAME_MAX_DATA_LENGTH
+              * 8 /* bits in byte */
+              * 2 /* Manchester encoded */)
+          + Constants.AUDIO_FRAME_CHECKSUM.size()
+          + Constants.AUDIO_FRAME_END.size());
+  
+  /**
    * The time it takes to send an ACK frame (in millaseconds).
    */
   private static final long ACK_FRAME_DURATION =
@@ -55,6 +67,13 @@ public class AudioEncoder {
       handleAckReceived();
     }
   };
+  
+  private final Runnable sendNextFrameRunnable = new Runnable() {
+    @Override
+    public void run() {
+      sendNextFrame();
+    }
+  };
     
   private final Runnable onFrameSentRunnable = new Runnable() {
     @Override
@@ -72,6 +91,7 @@ public class AudioEncoder {
     }};
     
   private boolean isFrameSending;
+  private int exponentialBackoffNumber;
   private ScheduledFuture<Void> timeoutFuture;
   
   public AudioEncoder() {
@@ -135,9 +155,15 @@ public class AudioEncoder {
     if (isFrameSending || frameQueue.isEmpty()) {
       return;
     }
+    
+    if (!input.isLineClear()) {
+      executor.schedule(sendNextFrameRunnable, Constants.BIT_DURATION / 2, TimeUnit.MILLISECONDS);
+      return;
+    }
 
     isFrameSending = true;
     input.setEnabled(false);
+    exponentialBackoffNumber = 1;
 
     Frame nextFrame = frameQueue.getFirst();
     nextFrame.send(onFrameSentRunnable);
@@ -181,6 +207,13 @@ public class AudioEncoder {
    * Handles a timeout occurring.
    */
   private synchronized void onTimeout() {
-    sendNextFrame();
+    long exponentialBackoffMultiple =
+        (long) Math.floor(Math.random() * Math.pow(2, exponentialBackoffNumber));
+
+    executor.schedule(
+        sendNextFrameRunnable,
+        (long) MAX_FRAME_DURATION * exponentialBackoffMultiple,
+        TimeUnit.MILLISECONDS);
+    exponentialBackoffNumber++;
   }
 }

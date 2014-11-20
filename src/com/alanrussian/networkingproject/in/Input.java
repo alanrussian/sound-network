@@ -83,6 +83,13 @@ public class Input {
   }
   
   /**
+   * Returns whether the line is clear on all frequencies that are used.
+   */
+  public boolean isLineClear() {
+    return audioDecoder.isLineClear();
+  }
+  
+  /**
    * Handles data being received from the {@link AudioDecoder}.
    */
   private void handleDataReceived(byte[] data) {
