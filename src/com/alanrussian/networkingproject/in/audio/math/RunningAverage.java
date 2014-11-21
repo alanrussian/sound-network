@@ -45,6 +45,14 @@ public class RunningAverage {
   }
   
   /**
+   * Clears the current numbers.
+   */
+  public void clear() {
+    numbers.clear();
+    average = 0.0;
+  }
+  
+  /**
    * Returns the average of the numbers.
    *
    * @throws IllegalStateException if no numbers are present

@@ -12,7 +12,9 @@ import javax.sound.sampled.TargetDataLine;
 
 import com.alanrussian.networkingproject.common.Constants;
 import com.alanrussian.networkingproject.in.audio.frame.FrameWatcher;
+import com.alanrussian.networkingproject.in.audio.math.RunningAverage;
 import com.alanrussian.networkingproject.in.audio.math.SoundMath;
+import com.alanrussian.networkingproject.in.audio.math.Statistics;
 import com.alanrussian.networkingproject.out.Output;
 
 /**
@@ -43,6 +45,11 @@ public class AudioDecoder {
    */
   private static final int SOUND_PARTITIONS = 16;
   
+  /**
+   * The number of {@link Constants#BIT_DURATION}s to listen to for measuring each isLineActive.
+   */
+  private static final int LINE_ACTIVE_COUNT = 3;
+  
   private static final AudioFormat AUDIO_FORMAT = new AudioFormat(
         Constants.SAMPLE_RATE,
         8 /* sampleSizeInBits */,
@@ -54,6 +61,14 @@ public class AudioDecoder {
   private final TargetDataLine line;
   private final FrameWatcher frameWatcher;
   private final AudioSignalParser audioSignalParser;
+
+  private final RunningAverage offRunningAverage;
+  private final RunningAverage onRunningAverage;
+  
+  /**
+   * Line activity is measured every partition and averaged with a 1 being on and a 0 being off.
+   */
+  private final RunningAverage lineActivity;
   
   private final FrameWatcher.Listener frameWatcherListener = new FrameWatcher.Listener() {
     @Override
@@ -95,6 +110,11 @@ public class AudioDecoder {
     this.frameWatcher = new FrameWatcher(frameWatcherListener);
     this.audioSignalParser = new AudioSignalParser(SOUND_PARTITIONS, audioSignalParserListener);
     
+    this.offRunningAverage = new RunningAverage(SOUND_PARTITIONS);
+    this.onRunningAverage = new RunningAverage(SOUND_PARTITIONS);
+
+    this.lineActivity = new RunningAverage(LINE_ACTIVE_COUNT);
+    
     isEnabled = true;
     
     scheduleTasks();
@@ -105,14 +125,17 @@ public class AudioDecoder {
    */
   public void setEnabled(boolean isEnabled) {
     this.isEnabled = isEnabled;
+    
+    if (isEnabled) {
+      lineActivity.clear();
+    }
   }
   
   /**
    * Returns whether all listened to frequencies are clear.
    */
   public boolean isLineClear() {
-    // TODO: Implement.
-    return true;
+    return lineActivity.haveAverage() && (lineActivity.getAverage() < 0.5);
   }
   
   private void scheduleTasks() {
@@ -161,15 +184,45 @@ public class AudioDecoder {
         partitionedAndTransformedData,
         Constants.SAMPLE_RATE);
     
+    double offMagnitudeSum = 0.0;
+    double onMagnitudeSum = 0.0;
+    
     for (int i = 0; i < SOUND_PARTITIONS; i++) {
       double offMagnitude = offMagnitudes[i] + offOffsetMagnitudes[i];
       double onMagnitude = onMagnitudes[i] + onOffsetMagnitudes[i];
+      
+      offMagnitudeSum += offMagnitude;
+      onMagnitudeSum += onMagnitude;
       
 //      System.out.printf("%.2f %.2f%n", offMagnitude, onMagnitude);
 
       boolean value = onMagnitude > offMagnitude;
       
       audioSignalParser.addSignal(value);
+      
+      if (value) {
+        offRunningAverage.add(offMagnitude);
+      } else {
+        onRunningAverage.add(onMagnitude);
+      }
+    }
+
+    if (offRunningAverage.haveAverage() && onRunningAverage.haveAverage()) {
+      double offMagnitudeAverage = offMagnitudeSum / SOUND_PARTITIONS;
+      double onMagnitudeAverage = onMagnitudeSum / SOUND_PARTITIONS;
+
+      boolean isLineFree = 
+          Statistics.isWithinAverage(
+              onMagnitudeAverage,
+              onRunningAverage.getAverage(),
+              onRunningAverage.getStandardDeviation(),
+              3 /* deviations */)
+          && Statistics.isWithinAverage(
+              offMagnitudeAverage,
+              offRunningAverage.getAverage(),
+              offRunningAverage.getStandardDeviation(),
+              3 /* deviations */);
+      lineActivity.add(isLineFree ? 0 : 1);
     }
   }
   
