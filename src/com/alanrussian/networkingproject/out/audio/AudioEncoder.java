@@ -49,6 +49,8 @@ public class AudioEncoder {
    */
   private static final long ACK_TIME_BUFFER = Constants.BIT_DURATION * 8;
   
+  private final int computerId;
+  
   private final Wave waveOff;
   private final Wave waveOn;
   
@@ -63,8 +65,8 @@ public class AudioEncoder {
     }
 
     @Override
-    public void onAckReceived() {
-      handleAckReceived();
+    public void onAckReceived(int recipient) {
+      handleAckReceived(recipient);
     }
   };
   
@@ -95,6 +97,8 @@ public class AudioEncoder {
   private ScheduledFuture<Void> timeoutFuture;
   
   public AudioEncoder(int computerId) {
+    this.computerId = computerId;
+    
     this.waveOff = new MixedWave(ImmutableList.of(
         new SineWave(Constants.FREQUENCY_OFF),
         new SineWave(Constants.FREQUENCY_OFF + Constants.FREQUENCY_SECOND_OFFSET)));
@@ -121,6 +125,7 @@ public class AudioEncoder {
         int length = Math.min(Constants.AUDIO_FRAME_MAX_DATA_LENGTH, data.length - offset + 1);
         
         DataFrame frame = new DataFrame(
+            target,
             waveOff,
             waveOn,
             Arrays.copyOfRange(data, offset, offset + length));
@@ -141,7 +146,7 @@ public class AudioEncoder {
    * Sends an ACK over audio.
    */
   public void sendAck() {
-    AckFrame frame = new AckFrame(waveOff, waveOn);
+    AckFrame frame = new AckFrame(computerId, waveOff, waveOn);
     
     // Must maintain the currently sending frame as the first item in the queue.
     frameQueue.add(isFrameSending ? 1 : 0, frame);
@@ -193,9 +198,19 @@ public class AudioEncoder {
   /**
    * Handles the receipt of an ACK.
    */
-  private synchronized void handleAckReceived() {
+  private synchronized void handleAckReceived(int recipient) {
+    if (recipient == computerId) {
+      System.err.println("It looks like someone else might have your computer ID.");
+      return;
+    }
+    
     if (frameQueue.isEmpty()) {
-      throw new IllegalStateException("Received ACK without sending data.");
+      return;
+    }
+    
+    // Ignore the ACK if it's for someone else.
+    if (recipient != frameQueue.peek().getTarget()) {
+      return;
     }
     
     timeoutFuture.cancel(false);

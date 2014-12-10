@@ -35,9 +35,9 @@ public class AudioDecoder {
     void onDataReceived(byte[] data);
     
     /**
-     * Triggered when an ACK is received.
+     * Triggered when an ACK is received from a {@code recipient}.
      */
-    void onAckReceived();
+    void onAckReceived(int recipient);
   }
 
   /**
@@ -73,13 +73,13 @@ public class AudioDecoder {
   
   private final FrameWatcher.Listener frameWatcherListener = new FrameWatcher.Listener() {
     @Override
-    public void onDataFrameFound(byte[] data) {
-      handleFrameFound(data);
+    public void onDataFrameFound(int target, byte[] data) {
+      handleFrameFound(target, data);
     }
     
     @Override
-    public void onAckFrameFound() {
-      handleAckFound();
+    public void onAckFrameFound(int recipient) {
+      handleAckFound(recipient);
     }
   };
   
@@ -274,7 +274,11 @@ public class AudioDecoder {
   /**
    * Handles a frame with data found by the {@link FrameWatcher}.
    */
-  private void handleFrameFound(byte[] data) {
+  private void handleFrameFound(int target, byte[] data) {
+    if (target != computerId) {
+      return;
+    }
+
     Output.getInstance(computerId).sendAck();
     listener.onDataReceived(data);
   }
@@ -282,8 +286,8 @@ public class AudioDecoder {
   /**
    * Handles an ACK frame being found by the {@link FrameWatcher}.
    */
-  private void handleAckFound() {
-    listener.onAckReceived();
+  private void handleAckFound(int recipient) {
+    listener.onAckReceived(recipient);
   }
   
   /**

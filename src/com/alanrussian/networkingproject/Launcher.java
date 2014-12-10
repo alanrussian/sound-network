@@ -87,6 +87,10 @@ public class Launcher {
             Constants.LARGEST_COMPUTER_ID);
         break;
         
+      case MESSAGE_TO_SELF:
+        System.out.println("Cannot send message to self.");
+        break;
+        
       default:
         throw new IllegalStateException(
             "Unhandled " + InputError.class.getSimpleName() + " received.");

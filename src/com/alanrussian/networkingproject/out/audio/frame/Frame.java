@@ -16,12 +16,22 @@ import com.google.common.collect.ImmutableList;
  */
 public abstract class Frame {
 
+  protected final int target;
+  
   private final Wave waveOff;
   private final Wave waveOn;
 
-  protected Frame(Wave waveOff, Wave waveOn) {
+  protected Frame(int target, Wave waveOff, Wave waveOn) {
+    this.target = target;
     this.waveOff = waveOff;
     this.waveOn = waveOn;
+  }
+  
+  /**
+   * Returns the target of the frame.
+   */
+  public int getTarget() {
+    return target;
   }
   
   /**

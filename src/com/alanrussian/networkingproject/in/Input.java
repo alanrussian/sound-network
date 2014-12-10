@@ -26,9 +26,9 @@ public class Input {
     void onDataReceived(byte[] data);
     
     /**
-     * Triggered when an ACK is received.
+     * Triggered when an ACK is received from a {@code recipient}.
      */
-    void onAckReceived();
+    void onAckReceived(int recipient);
   }
   
   private static Map<Integer, Input> computerIdsToInstance = new HashMap<>();
@@ -43,8 +43,8 @@ public class Input {
     }
     
     @Override
-    public void onAckReceived() {
-      handleAckReceived();
+    public void onAckReceived(int recipient) {
+      handleAckReceived(recipient);
     }
   };
   
@@ -103,9 +103,9 @@ public class Input {
   /**
    * Handles an ACK being received from the {@link AudioDecoder}.
    */
-  private void handleAckReceived() {
+  private void handleAckReceived(int recipient) {
     for (Listener listener : listeners) {
-      listener.onAckReceived();
+      listener.onAckReceived(recipient);
     }
   }
 }

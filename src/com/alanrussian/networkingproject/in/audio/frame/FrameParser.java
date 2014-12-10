@@ -21,17 +21,21 @@ class FrameParser {
     private static final long serialVersionUID = 1L;
   }
   
+  private final ManchesterParser targetParser;
   private final ManchesterParser sizeParser;
   private final ManchesterParser dataParser;
   
+  private Optional<Integer> target;
   private Optional<Integer> size;
   private int checksumIndex;
   private int endIndex;
 
   public FrameParser() {
+    this.targetParser = new ManchesterParser();
     this.sizeParser = new ManchesterParser();
     this.dataParser = new ManchesterParser();
 
+    target = Optional.absent();
     size = Optional.absent();
     checksumIndex = 0;
     endIndex = 0;
@@ -43,6 +47,15 @@ class FrameParser {
    * @return whether a complete frame has been received
    */
   public boolean addBit(boolean value) throws FrameLossException {
+    if (!target.isPresent()) {
+      try {
+        handleNewTargetBit(value);
+      } catch (ManchesterEncodingException e) {
+        throw new FrameLossException("Misinterpreted target encoding");
+      }
+      return false;
+    }
+
     if (!size.isPresent()) {
       try {
         handleNewSizeBit(value);
@@ -79,6 +92,19 @@ class FrameParser {
   }
   
   /**
+   * Returns the target of the frame.
+   * 
+   * @throws IllegalStateException if the frame has not yet ended
+   */
+  public int getTarget() {
+    if (!isFrameFinished()) {
+      throw new IllegalStateException();
+    }
+    
+    return target.get();
+  }
+  
+  /**
    * Returns the data as a list of booleans.
    * 
    * @throws IllegalStateException if the frame has not yet ended
@@ -102,6 +128,19 @@ class FrameParser {
     }
     
     return size.get() == 0;
+  }
+  
+  /**
+   * Handles a new bit while in the target part of the frame.
+   */
+  private void handleNewTargetBit(boolean value) throws ManchesterEncodingException {
+    targetParser.addBit(value);
+    
+    if (targetParser.size() != Constants.COMPUTER_ID_BITS) {
+      return;
+    }
+
+    target = Optional.of(convertBooleansToNumber(targetParser.getData()));
   }
   
   /**

@@ -19,12 +19,12 @@ public class FrameWatcher {
     /**
      * Triggered when a frame of data has been received.
      */
-    void onDataFrameFound(byte[] data);
+    void onDataFrameFound(int target, byte[] data);
     
     /**
      * Triggered when an ACK frame has been received.
      */
-    void onAckFrameFound();
+    void onAckFrameFound(int recipient);
   }
 
   private final Listener listener;
@@ -100,7 +100,7 @@ public class FrameWatcher {
     isInFrame = false;
     
     if (frameParser.isAckFrame()) {
-      listener.onAckFrameFound();
+      listener.onAckFrameFound(frameParser.getTarget());
       
       return;
     }
@@ -112,7 +112,7 @@ public class FrameWatcher {
       bitSet.set(i, data.get(i));
     }
 
-    listener.onDataFrameFound(bitSet.toByteArray());
+    listener.onDataFrameFound(frameParser.getTarget(), bitSet.toByteArray());
   }
   
   /**

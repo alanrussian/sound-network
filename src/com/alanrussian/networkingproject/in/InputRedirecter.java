@@ -18,7 +18,7 @@ public class InputRedirecter {
     }
 
     @Override
-    public void onAckReceived() {
+    public void onAckReceived(int recipient) {
       // Do not care here.
     }
   };

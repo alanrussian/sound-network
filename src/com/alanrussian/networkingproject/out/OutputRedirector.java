@@ -21,7 +21,8 @@ public class OutputRedirector {
   public interface Listener {
     public enum InputError {
       FORMAT,
-      OUT_OF_RANGE_TARGET
+      OUT_OF_RANGE_TARGET,
+      MESSAGE_TO_SELF
     };
 
     void onBadInput(InputError error);
@@ -57,7 +58,11 @@ public class OutputRedirector {
           return;
         }
 
-        out.sendData(target, message.getBytes(Constants.CHARSET));
+        try {
+          out.sendData(target, message.getBytes(Constants.CHARSET));
+        } catch (IllegalArgumentException e) {
+          listener.onBadInput(Listener.InputError.MESSAGE_TO_SELF);
+        }
       }
     }
   };
