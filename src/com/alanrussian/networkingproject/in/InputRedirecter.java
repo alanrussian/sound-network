@@ -5,7 +5,8 @@ import java.io.PrintStream;
 import com.alanrussian.networkingproject.common.Constants;
 
 /**
- * Redirects data from an {@link Input} by outputting its data to a {@link PrintStream}.
+ * Redirects data from an {@link Input} by outputting its data to a {@link PrintStream} prefixed by
+ * "Received: ".
  */
 public class InputRedirecter {
   
@@ -30,6 +31,8 @@ public class InputRedirecter {
   }
   
   private void handleDataReceived(byte[] data) {
-    out.println(new String(data, Constants.CHARSET));
+    String message = new String(data, Constants.CHARSET);
+
+    out.println("Received: " + message);
   }
 }
