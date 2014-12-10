@@ -47,7 +47,7 @@ public class AudioEncoder {
    * Time buffer for the ACK timeout (in millaseconds). Note the high number is due to the slow
    * decoding process.
    */
-  private static final long ACK_TIME_BUFFER = Constants.BIT_DURATION * 4;
+  private static final long ACK_TIME_BUFFER = Constants.BIT_DURATION * 8;
   
   private final Wave waveOff;
   private final Wave waveOn;

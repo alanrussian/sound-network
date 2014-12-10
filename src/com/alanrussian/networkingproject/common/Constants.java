@@ -43,7 +43,7 @@ public class Constants {
   /**
    * Millaseconds that each bit is transfered for.
    */
-  public static final int BIT_DURATION = SAMPLE_RATE / 500;
+  public static final int BIT_DURATION = SAMPLE_RATE / 256;
   
   /**
    * The start of an audio frame.
