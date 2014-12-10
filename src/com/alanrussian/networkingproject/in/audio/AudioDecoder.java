@@ -57,6 +57,7 @@ public class AudioDecoder {
         true, /* signed */ 
         true /* bigEndian */);
   
+  private final int computerId;
   private final Listener listener;
   private final TargetDataLine line;
   private final FrameWatcher frameWatcher;
@@ -99,7 +100,8 @@ public class AudioDecoder {
   
   private boolean isEnabled;
   
-  public AudioDecoder(Listener listener) throws LineUnavailableException {
+  public AudioDecoder(int computerId, Listener listener) throws LineUnavailableException {
+    this.computerId = computerId;
     this.listener = listener;
 
     this.line = AudioSystem.getTargetDataLine(AUDIO_FORMAT);
@@ -273,7 +275,7 @@ public class AudioDecoder {
    * Handles a frame with data found by the {@link FrameWatcher}.
    */
   private void handleFrameFound(byte[] data) {
-    Output.getInstance().sendAck();
+    Output.getInstance(computerId).sendAck();
     listener.onDataReceived(data);
   }
   

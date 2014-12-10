@@ -1,5 +1,8 @@
 package com.alanrussian.networkingproject.out;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.alanrussian.networkingproject.out.audio.AudioEncoder;
 
 /**
@@ -7,23 +10,23 @@ import com.alanrussian.networkingproject.out.audio.AudioEncoder;
  */
 public class Output {
   
-  private static Output instance;
+  private static Map<Integer, Output> computerIdsToInstance = new HashMap<>();
   
   private final AudioEncoder encoder;
   
-  private Output() {
-    encoder = new AudioEncoder();
+  private Output(int computerId) {
+    encoder = new AudioEncoder(computerId);
   }
   
   /**
    * Returns the instance of the Output class.
    */
-  public static Output getInstance() {
-    if (instance == null) {
-      instance = new Output();
+  public static Output getInstance(int computerId) {
+    if (!computerIdsToInstance.containsKey(computerId)) {
+      computerIdsToInstance.put(computerId, new Output(computerId));
     }
 
-    return instance;
+    return computerIdsToInstance.get(computerId);
   }
 
   public void sendData(byte[] data) {

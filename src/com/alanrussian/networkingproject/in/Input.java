@@ -1,7 +1,9 @@
 package com.alanrussian.networkingproject.in;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.sound.sampled.LineUnavailableException;
 
@@ -29,7 +31,7 @@ public class Input {
     void onAckReceived();
   }
   
-  private static Input instance;
+  private static Map<Integer, Input> computerIdsToInstance = new HashMap<>();
   
   private final AudioDecoder audioDecoder;
   private final List<Listener> listeners;
@@ -46,11 +48,11 @@ public class Input {
     }
   };
   
-  private Input() {
+  private Input(int computerId) {
     this.listeners = new ArrayList<>();
 
     try {
-      this.audioDecoder = new AudioDecoder(decoderListener);
+      this.audioDecoder = new AudioDecoder(computerId, decoderListener);
     } catch (LineUnavailableException e) {
       // TODO: Handle error.
       e.printStackTrace();
@@ -60,14 +62,14 @@ public class Input {
   }
   
   /**
-   * Returns the instance of the Input class.
+   * Returns the instance of the Input class for the given ID.
    */
-  public static Input getInstance() {
-    if (instance == null) {
-      instance = new Input();
+  public static Input getInstance(int computerId) {
+    if (!computerIdsToInstance.containsKey(computerId)) {
+      computerIdsToInstance.put(computerId, new Input(computerId));
     }
 
-    return instance;
+    return computerIdsToInstance.get(computerId);
   }
   
   public void addListener(Listener listener) {

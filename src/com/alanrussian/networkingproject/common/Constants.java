@@ -73,4 +73,9 @@ public class Constants {
    */
   public static final int AUDIO_FRAME_MAX_DATA_LENGTH =
       ((int) Math.pow(2, AUDIO_FRAME_SIZE_BITS)) - 1;
+  
+  /**
+   * The number of bits containing the computer ID.
+   */
+  public static final int COMPUTER_ID_BITS = 3;
 }

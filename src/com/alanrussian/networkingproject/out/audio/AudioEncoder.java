@@ -94,7 +94,7 @@ public class AudioEncoder {
   private int exponentialBackoffNumber;
   private ScheduledFuture<Void> timeoutFuture;
   
-  public AudioEncoder() {
+  public AudioEncoder(int computerId) {
     this.waveOff = new MixedWave(ImmutableList.of(
         new SineWave(Constants.FREQUENCY_OFF),
         new SineWave(Constants.FREQUENCY_OFF + Constants.FREQUENCY_SECOND_OFFSET)));
@@ -102,7 +102,7 @@ public class AudioEncoder {
         new SineWave(Constants.FREQUENCY_ON),
         new SineWave(Constants.FREQUENCY_ON + Constants.FREQUENCY_SECOND_OFFSET)));
     
-    this.input = Input.getInstance();
+    this.input = Input.getInstance(computerId);
     this.frameQueue = new LinkedList<>();
     this.executor = Executors.newSingleThreadScheduledExecutor();
     
