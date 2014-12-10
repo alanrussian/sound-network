@@ -29,8 +29,8 @@ public class Output {
     return computerIdsToInstance.get(computerId);
   }
 
-  public void sendData(byte[] data) {
-    encoder.sendData(data);
+  public void sendData(int target, byte[] data) {
+    encoder.sendData(target, data);
   }
   
   public void sendAck() {

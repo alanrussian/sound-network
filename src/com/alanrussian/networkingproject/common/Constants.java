@@ -78,4 +78,14 @@ public class Constants {
    * The number of bits containing the computer ID.
    */
   public static final int COMPUTER_ID_BITS = 3;
+  
+  /**
+   * The smallest possible computer ID.
+   */
+  public static final int SMALLEST_COMPUTER_ID = 0;
+  
+  /**
+   * The largest possible computer ID.
+   */
+  public static final int LARGEST_COMPUTER_ID = ((int) Math.pow(2, COMPUTER_ID_BITS)) - 1;
 }

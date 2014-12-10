@@ -112,7 +112,8 @@ public class AudioEncoder {
   /**
    * Sends {@code data} over audio.
    */
-  public void sendData(byte[] data) {
+  public void sendData(int target, byte[] data) {
+    // TODO: Handle target.
     try {
       int offset = 0;
       
