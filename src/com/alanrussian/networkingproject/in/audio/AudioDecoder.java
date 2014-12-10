@@ -281,6 +281,8 @@ public class AudioDecoder {
 
     Output.getInstance(computerId).sendAck();
     listener.onDataReceived(data);
+    
+    System.err.println("Sending ACK.");
   }
   
   /**

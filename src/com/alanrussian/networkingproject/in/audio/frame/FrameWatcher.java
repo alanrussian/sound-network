@@ -87,7 +87,7 @@ public class FrameWatcher {
         return;
       }
     } catch (FrameLossException e) {
-      System.err.println("Frame loss (" + e.getMessage() + ")");
+//      System.err.println("Frame loss (" + e.getMessage() + ")");
       
       isInFrame = false;
       addValueToTracker(value);

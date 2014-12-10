@@ -213,6 +213,8 @@ public class AudioEncoder {
       return;
     }
     
+    System.err.printf("ACK Received from %d.%n", recipient);
+    
     timeoutFuture.cancel(false);
     
     frameQueue.removeFirst();
