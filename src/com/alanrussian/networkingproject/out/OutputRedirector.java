@@ -33,7 +33,7 @@ public class OutputRedirector {
    */
   private static final long PERIOD = 100;
   
-  private static final Pattern LINE_PATTERN = Pattern.compile("(\\d+): (.+)");
+  private static final Pattern LINE_PATTERN = Pattern.compile("(\\d+): ?(.+)");
   
   private final Output out;
   private final Scanner scanner;
