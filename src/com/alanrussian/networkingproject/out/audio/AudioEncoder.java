@@ -40,6 +40,7 @@ public class AudioEncoder {
    */
   private static final long ACK_FRAME_DURATION =
       Constants.BIT_DURATION * (Constants.AUDIO_FRAME_START.size()
+          + (Constants.COMPUTER_ID_BITS * 2 /* Manchester encoded */)
           + (Constants.AUDIO_FRAME_SIZE_BITS * 2 /* Manchester encoded */)
           + Constants.AUDIO_FRAME_END.size());
   
