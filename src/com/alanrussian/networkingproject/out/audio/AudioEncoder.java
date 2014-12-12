@@ -28,6 +28,7 @@ public class AudioEncoder {
    */
   private static final long MAX_FRAME_DURATION =
       Constants.BIT_DURATION * (Constants.AUDIO_FRAME_START.size()
+          + (Constants.COMPUTER_ID_BITS * 2 /* Manchester encoded */ * 2 /* source and target */)
           + (Constants.AUDIO_FRAME_SIZE_BITS * 2 /* Manchester encoded */)
           + (Constants.AUDIO_FRAME_MAX_DATA_LENGTH
               * 8 /* bits in byte */
@@ -40,7 +41,7 @@ public class AudioEncoder {
    */
   private static final long ACK_FRAME_DURATION =
       Constants.BIT_DURATION * (Constants.AUDIO_FRAME_START.size()
-          + (Constants.COMPUTER_ID_BITS * 2 /* Manchester encoded */)
+          + (Constants.COMPUTER_ID_BITS * 2 /* Manchester encoded */ * 2 /* source and target */)
           + (Constants.AUDIO_FRAME_SIZE_BITS * 2 /* Manchester encoded */)
           + Constants.AUDIO_FRAME_END.size());
   
@@ -61,13 +62,13 @@ public class AudioEncoder {
   
   private final Input.Listener inputListener = new Input.Listener() {
     @Override
-    public void onDataReceived(byte[] data) {
+    public void onDataReceived(int source, byte[] data) {
       // Don't care here.
     }
 
     @Override
-    public void onAckReceived(int recipient) {
-      handleAckReceived(recipient);
+    public void onAckReceived(int source) {
+      handleAckReceived(source);
     }
   };
   
@@ -118,7 +119,6 @@ public class AudioEncoder {
    * Sends {@code data} over audio.
    */
   public void sendData(int target, byte[] data) {
-    // TODO: Handle target.
     try {
       int offset = 0;
       
@@ -126,6 +126,7 @@ public class AudioEncoder {
         int length = Math.min(Constants.AUDIO_FRAME_MAX_DATA_LENGTH, data.length - offset + 1);
         
         DataFrame frame = new DataFrame(
+            computerId,
             target,
             waveOff,
             waveOn,
@@ -146,8 +147,8 @@ public class AudioEncoder {
   /**
    * Sends an ACK over audio.
    */
-  public void sendAck() {
-    AckFrame frame = new AckFrame(computerId, waveOff, waveOn);
+  public void sendAck(int target) {
+    AckFrame frame = new AckFrame(computerId, target, waveOff, waveOn);
     
     // Must maintain the currently sending frame as the first item in the queue.
     frameQueue.add(isFrameSending ? 1 : 0, frame);
@@ -199,8 +200,8 @@ public class AudioEncoder {
   /**
    * Handles the receipt of an ACK.
    */
-  private synchronized void handleAckReceived(int recipient) {
-    if (recipient == computerId) {
+  private synchronized void handleAckReceived(int source) {
+    if (source == computerId) {
       System.err.println("It looks like someone else might have your computer ID.");
       return;
     }
@@ -208,13 +209,13 @@ public class AudioEncoder {
     if (frameQueue.isEmpty()) {
       return;
     }
-    
-    // Ignore the ACK if it's for someone else.
-    if (recipient != frameQueue.peek().getTarget()) {
+
+    // Make sure it all lines up.
+    if (source != frameQueue.peek().getTarget()) {
       return;
     }
     
-    System.err.printf("ACK Received from %d.%n", recipient);
+    System.err.printf("ACK received from %d.%n", source);
     
     timeoutFuture.cancel(false);
     

@@ -43,7 +43,7 @@ public class Output {
     encoder.sendData(target, data);
   }
   
-  public void sendAck() {
-    encoder.sendAck();
+  public void sendAck(int target) {
+    encoder.sendAck(target);
   }
 }

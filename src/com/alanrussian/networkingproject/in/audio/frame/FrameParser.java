@@ -21,20 +21,24 @@ class FrameParser {
     private static final long serialVersionUID = 1L;
   }
   
+  private final ManchesterParser sourceIdParser;
   private final ManchesterParser targetParser;
   private final ManchesterParser sizeParser;
   private final ManchesterParser dataParser;
   
+  private Optional<Integer> source;
   private Optional<Integer> target;
   private Optional<Integer> size;
   private int checksumIndex;
   private int endIndex;
 
   public FrameParser() {
+    this.sourceIdParser = new ManchesterParser();
     this.targetParser = new ManchesterParser();
     this.sizeParser = new ManchesterParser();
     this.dataParser = new ManchesterParser();
 
+    source = Optional.absent();
     target = Optional.absent();
     size = Optional.absent();
     checksumIndex = 0;
@@ -47,6 +51,15 @@ class FrameParser {
    * @return whether a complete frame has been received
    */
   public boolean addBit(boolean value) throws FrameLossException {
+    if (!source.isPresent()) {
+      try {
+        handleNewSourceBit(value);
+      } catch (ManchesterEncodingException e) {
+        throw new FrameLossException("Misinterpreted source encoding");
+      }
+      return false;
+    }
+
     if (!target.isPresent()) {
       try {
         handleNewTargetBit(value);
@@ -92,6 +105,19 @@ class FrameParser {
   }
   
   /**
+   * Returns the source of the frame.
+   * 
+   * @throws IllegalStateException if the frame has not yet ended
+   */
+  public int getSource() {
+    if (!isFrameFinished()) {
+      throw new IllegalStateException();
+    }
+    
+    return source.get();
+  }
+  
+  /**
    * Returns the target of the frame.
    * 
    * @throws IllegalStateException if the frame has not yet ended
@@ -128,6 +154,19 @@ class FrameParser {
     }
     
     return size.get() == 0;
+  }
+  
+  /**
+   * Handles a new bit while in the source part of the frame.
+   */
+  private void handleNewSourceBit(boolean value) throws ManchesterEncodingException {
+    sourceIdParser.addBit(value);
+    
+    if (sourceIdParser.size() != Constants.COMPUTER_ID_BITS) {
+      return;
+    }
+
+    source = Optional.of(convertBooleansToNumber(sourceIdParser.getData()));
   }
   
   /**

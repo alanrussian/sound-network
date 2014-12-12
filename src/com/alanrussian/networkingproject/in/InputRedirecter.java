@@ -6,7 +6,7 @@ import com.alanrussian.networkingproject.common.Constants;
 
 /**
  * Redirects data from an {@link Input} by outputting its data to a {@link PrintStream} prefixed by
- * "Received: ".
+ * "Received from #: ".
  */
 public class InputRedirecter {
   
@@ -14,12 +14,12 @@ public class InputRedirecter {
   
   private final Input.Listener listener = new Input.Listener() {
     @Override
-    public void onDataReceived(byte[] data) {
-      handleDataReceived(data);
+    public void onDataReceived(int source, byte[] data) {
+      handleDataReceived(source, data);
     }
 
     @Override
-    public void onAckReceived(int recipient) {
+    public void onAckReceived(int source) {
       // Do not care here.
     }
   };
@@ -30,9 +30,9 @@ public class InputRedirecter {
     in.addListener(listener);
   }
   
-  private void handleDataReceived(byte[] data) {
+  private void handleDataReceived(int source, byte[] data) {
     String message = new String(data, Constants.CHARSET);
 
-    out.println("Received: " + message);
+    out.printf("Received from %d: %s%n", source, message);
   }
 }

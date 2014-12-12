@@ -32,12 +32,12 @@ public class AudioDecoder {
     /**
      * Triggered when new data is received.
      */
-    void onDataReceived(byte[] data);
+    void onDataReceived(int source, byte[] data);
     
     /**
-     * Triggered when an ACK is received from a {@code recipient}.
+     * Triggered when an ACK is received.
      */
-    void onAckReceived(int recipient);
+    void onAckReceived(int source);
   }
 
   /**
@@ -73,13 +73,13 @@ public class AudioDecoder {
   
   private final FrameWatcher.Listener frameWatcherListener = new FrameWatcher.Listener() {
     @Override
-    public void onDataFrameFound(int target, byte[] data) {
-      handleFrameFound(target, data);
+    public void onDataFrameFound(int source, int target, byte[] data) {
+      handleFrameFound(source, target, data);
     }
     
     @Override
-    public void onAckFrameFound(int recipient) {
-      handleAckFound(recipient);
+    public void onAckFrameFound(int source, int target) {
+      handleAckFound(source, target);
     }
   };
   
@@ -274,22 +274,26 @@ public class AudioDecoder {
   /**
    * Handles a frame with data found by the {@link FrameWatcher}.
    */
-  private void handleFrameFound(int target, byte[] data) {
+  private void handleFrameFound(int source, int target, byte[] data) {
     if (target != computerId) {
       return;
     }
 
-    Output.getInstance(computerId).sendAck();
-    listener.onDataReceived(data);
+    Output.getInstance(computerId).sendAck(source);
+    listener.onDataReceived(source, data);
     
-    System.err.println("Sending ACK.");
+    System.err.printf("Sending ACK to %d.%n", target);
   }
   
   /**
    * Handles an ACK frame being found by the {@link FrameWatcher}.
    */
-  private void handleAckFound(int recipient) {
-    listener.onAckReceived(recipient);
+  private void handleAckFound(int source, int target) {
+    if (target != computerId) {
+      return;
+    }
+
+    listener.onAckReceived(source);
   }
   
   /**

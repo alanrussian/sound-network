@@ -23,12 +23,12 @@ public class Input {
     /**
      * Triggered when new data is received.
      */
-    void onDataReceived(byte[] data);
+    void onDataReceived(int source, byte[] data);
     
     /**
-     * Triggered when an ACK is received from a {@code recipient}.
+     * Triggered when an ACK is received.
      */
-    void onAckReceived(int recipient);
+    void onAckReceived(int source);
   }
   
   private static Map<Integer, Input> computerIdsToInstance = new HashMap<>();
@@ -38,13 +38,13 @@ public class Input {
   
   private final AudioDecoder.Listener decoderListener = new AudioDecoder.Listener() {
     @Override
-    public void onDataReceived(byte[] data) {
-      handleDataReceived(data);
+    public void onDataReceived(int source, byte[] data) {
+      handleDataReceived(source, data);
     }
     
     @Override
-    public void onAckReceived(int recipient) {
-      handleAckReceived(recipient);
+    public void onAckReceived(int source) {
+      handleAckReceived(source);
     }
   };
   
@@ -94,18 +94,18 @@ public class Input {
   /**
    * Handles data being received from the {@link AudioDecoder}.
    */
-  private void handleDataReceived(byte[] data) {
+  private void handleDataReceived(int source, byte[] data) {
     for (Listener listener : listeners) {
-      listener.onDataReceived(data);
+      listener.onDataReceived(source, data);
     }
   }
   
   /**
    * Handles an ACK being received from the {@link AudioDecoder}.
    */
-  private void handleAckReceived(int recipient) {
+  private void handleAckReceived(int source) {
     for (Listener listener : listeners) {
-      listener.onAckReceived(recipient);
+      listener.onAckReceived(source);
     }
   }
 }

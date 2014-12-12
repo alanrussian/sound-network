@@ -14,8 +14,8 @@ public class DataFrame extends Frame {
   
   private final byte[] data;
 
-  public DataFrame(int target, Wave waveOff, Wave waveOn, byte[] data) {
-    super(target, waveOff, waveOn);
+  public DataFrame(int source, int target, Wave waveOff, Wave waveOn, byte[] data) {
+    super(source, target, waveOff, waveOn);
 
     if (data.length > Constants.AUDIO_FRAME_MAX_DATA_LENGTH) {
       throw new IllegalArgumentException(
@@ -29,6 +29,7 @@ public class DataFrame extends Frame {
   protected List<Boolean> getSignals() {
     return ImmutableList.<Boolean>builder()
         .addAll(Constants.AUDIO_FRAME_START)
+        .addAll(createOutput(createBooleanListFromNumber(source, Constants.COMPUTER_ID_BITS)))
         .addAll(createOutput(createBooleanListFromNumber(target, Constants.COMPUTER_ID_BITS)))
         .addAll(createOutput(
             createBooleanListFromNumber(data.length, Constants.AUDIO_FRAME_SIZE_BITS)))

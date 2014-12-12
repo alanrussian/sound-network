@@ -11,8 +11,8 @@ import com.google.common.collect.ImmutableList;
  */
 public class AckFrame extends Frame {
 
-  public AckFrame(int target, Wave waveOff, Wave waveOn) {
-    super(target, waveOff, waveOn);
+  public AckFrame(int source, int target, Wave waveOff, Wave waveOn) {
+    super(source, target, waveOff, waveOn);
   }
 
   /**
@@ -22,6 +22,7 @@ public class AckFrame extends Frame {
   protected List<Boolean> getSignals() {
     return ImmutableList.<Boolean>builder()
         .addAll(Constants.AUDIO_FRAME_START)
+        .addAll(createOutput(createBooleanListFromNumber(source, Constants.COMPUTER_ID_BITS)))
         .addAll(createOutput(createBooleanListFromNumber(target, Constants.COMPUTER_ID_BITS)))
         .addAll(createOutput(
             createBooleanListFromNumber(0, Constants.AUDIO_FRAME_SIZE_BITS)))

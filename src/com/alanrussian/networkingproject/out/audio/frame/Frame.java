@@ -16,12 +16,14 @@ import com.google.common.collect.ImmutableList;
  */
 public abstract class Frame {
 
+  protected final int source;
   protected final int target;
   
   private final Wave waveOff;
   private final Wave waveOn;
 
-  protected Frame(int target, Wave waveOff, Wave waveOn) {
+  protected Frame(int source, int target, Wave waveOff, Wave waveOn) {
+    this.source = source;
     this.target = target;
     this.waveOff = waveOff;
     this.waveOn = waveOn;
